@@ -19,7 +19,7 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - uses: ryankurte/action-apt@v0.1
+      - uses: ryankurte/action-apt@v0.1.0
         with: 
           packages: "libglib2.0-dev"
 
