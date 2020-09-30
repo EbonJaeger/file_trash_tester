@@ -21,7 +21,6 @@ jobs:
     steps:
       - uses: ryankurte/action-apt@v0.1.0
         with: 
-          architectures: "amd64"
           packages: "libglib2.0-dev"
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
