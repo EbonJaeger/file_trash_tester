@@ -12,7 +12,7 @@ TrashItem *trash_item_new(const char *name, const char *path, char *restore_path
     item->name = name;
     item->path = path;
     item->restore_path = restore_path;
-    item->directory = g_file_test(item->name, G_FILE_TEST_IS_DIR);
+    item->directory = g_file_test(item->path, G_FILE_TEST_IS_DIR);
 
     return item;
 }
