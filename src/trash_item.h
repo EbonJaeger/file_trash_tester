@@ -3,16 +3,26 @@
 
 #include <gio/gio.h>
 
-struct TrashItem;
+/**
+ * Holds the deletion date and restore path for a
+ * trashed file.
+ */
+struct TrashInfo;
+typedef struct TrashInfo
+{
+    char *restore_path;
+    GDateTime *deletion_date;
+} TrashInfo;
 
 /**
  * Represents an item in the trash bin.
  */
+struct TrashItem;
 typedef struct TrashItem
 {
     const char *name;
     const char *path;
-    char *restore_path;
+    TrashInfo *trash_info;
     int directory;
 } TrashItem;
 
@@ -21,7 +31,19 @@ typedef struct TrashItem
  * 
  * The returned pointer should be freed with `trash_item_free()`.
  */
-TrashItem *trash_item_new(const char *name, const char *path, char *restore_path);
+TrashItem *trash_item_new(const char *name, const char *path);
+
+/**
+ * Creates and allocates a new TrashInfo.
+ * 
+ * The result of this should be freed with `trash_info_free()`.
+ */
+TrashInfo *trash_info_new(char *restore_path, GDateTime *deletion_date);
+
+/**
+ * Frees all resources for a TrashInfo struct.
+ */
+void trash_item_free(TrashItem *trash_item);
 
 /**
  * Frees all resources for a TrashItem.

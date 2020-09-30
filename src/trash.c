@@ -19,12 +19,24 @@ GSList *trash_get_items(const char *path, GError **err)
     while ((current_file = g_file_enumerator_next_file(enumerator, NULL, err)))
     {
         const char *file_name = g_file_info_get_name(current_file);
-        char *restore_path = trash_get_restore_path(file_name, err);
         char *trashed_path = (char *)g_build_path("/", path, file_name, NULL);
 
-        TrashItem *item = trash_item_new(file_name, trashed_path, restore_path);
+        TrashItem *trash_item = trash_item_new(file_name, trashed_path);
 
-        files = g_slist_append(files, (gpointer)item);
+        // Parse the trashinfo file for this item
+        char *trash_info_contents = trash_read_trash_info(file_name, err);
+        if (!trash_info_contents)
+        {
+            break;
+        }
+
+        char *restore_path = trash_get_restore_path(trash_info_contents);
+        GDateTime *deletion_date = trash_get_deletion_date(trash_info_contents);
+        TrashInfo *trash_info = trash_info_new(restore_path, deletion_date);
+        trash_item->trash_info = trash_info;
+
+        free(trash_info_contents);
+        files = g_slist_append(files, (gpointer)trash_item);
     }
 
     // Free resources
@@ -55,10 +67,38 @@ gchar *trash_get_info_file_path(const char *name)
     return path;
 }
 
-char *trash_get_restore_path(const char *name, GError **err)
+GDateTime *trash_get_deletion_date(char *data)
+{
+    int substr_start = (int)(strchr(data, '\n') - data + TRASH_INFO_DELETION_DATE_PREFIX_OFFSET);
+    int length = strlen(data) - substr_start - 1;
+
+    char *deletion_date_str = (char *)malloc(length + 1);
+
+    deletion_date_str = substring(data, deletion_date_str, substr_start, length);
+    deletion_date_str[length] = '\0';
+
+    GDateTime *deletion_date = g_date_time_new_from_iso8601((const gchar *)deletion_date_str, g_time_zone_new_local());
+
+    return deletion_date;
+}
+
+char *trash_get_restore_path(char *data)
+{
+    int end_of_line = (int)(strchr(data, '\n') - data);
+    int length = end_of_line - TRASH_INFO_PATH_PREFIX_OFFSET;
+
+    char *restore_path = (char *)malloc(length + 1);
+
+    restore_path = substring(data, restore_path, TRASH_INFO_PATH_PREFIX_OFFSET, length);
+    restore_path[length] = '\0';
+
+    return restore_path;
+}
+
+char *trash_read_trash_info(const char *file_name, GError **err)
 {
     // Get the path to the trashinfo file
-    gchar *info_file_path = trash_get_info_file_path(name);
+    gchar *info_file_path = trash_get_info_file_path(file_name);
 
     // Open the file
     GFile *info_file = g_file_new_for_path(info_file_path);
@@ -74,7 +114,7 @@ char *trash_get_restore_path(const char *name, GError **err)
     g_seekable_seek((GSeekable *)input_stream, TRASH_INFO_PATH_OFFSET, G_SEEK_SET, NULL, err);
 
     // Read the file contents and extract the line containing the restore path
-    char buffer[1024];
+    char *buffer = (char *)malloc(1024 * sizeof(char));
     gssize read;
     while ((read = g_input_stream_read((GInputStream *)input_stream, buffer, 1024, NULL, err)))
     {
@@ -86,11 +126,5 @@ char *trash_get_restore_path(const char *name, GError **err)
     g_object_unref(info_file);
     g_free(info_file_path);
 
-    // Get just the path itself
-    int end_of_line = (int)(strchr(buffer, '\n') - buffer);
-    char *restore_path = (char *)malloc(end_of_line + 1);
-    restore_path = substring(buffer, restore_path, 0, end_of_line);
-    restore_path[end_of_line] = '\0';
-
-    return restore_path;
+    return buffer;
 }

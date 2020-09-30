@@ -10,7 +10,19 @@
  * The offset to the beginning of the line containing the
  * restore path.
  */
-#define TRASH_INFO_PATH_OFFSET 18
+#define TRASH_INFO_PATH_OFFSET 13
+
+/**
+ * The offset from the beginning of a line to the start of
+ * the restore path in a trash info file.
+ */
+#define TRASH_INFO_PATH_PREFIX_OFFSET 5
+
+/**
+ * The offset to the beginning of the date from the start
+ * of a line.
+ */
+#define TRASH_INFO_DELETION_DATE_PREFIX_OFFSET 14
 
 /**
  * Get a list of all files in the current user's trash bin.
@@ -37,13 +49,26 @@ gchar *trash_get_path(void);
 gchar *trash_get_info_file_path(const char *name);
 
 /**
- * Get the restore path for a given file in the trash bin.
+ * Parse the contents of a trashinfo file to get the time
+ * that a file was deleted.
  * 
- * The trash info file will be read to find the path. This
- * will block until it is done.
+ * The result of this should be unreffed with `g_date_time_unref()`.
+ */
+GDateTime *trash_get_deletion_date(char *data);
+
+/**
+ * Parse the contents of a trashinfo file to get the path
+ * that a trashed file would be restored to.
  * 
  * The result of this should be freed with `free()`.
  */
-char *trash_get_restore_path(const char *name, GError **err);
+char *trash_get_restore_path(char *data);
+
+/**
+ * Read the contents of a trashinfo file into memory.
+ * 
+ * The result of this should be freed with `free()`.
+ */
+char *trash_read_trash_info(const char *file_name, GError **err);
 
 #endif

@@ -3,6 +3,8 @@
 
 int main(void)
 {
+    g_set_application_name("trash-tester");
+
     char *path = (char *)trash_get_path();
     printf("Trash directory: %s\n", path);
 
@@ -29,7 +31,12 @@ int main(void)
     for (int i = 0; i < length; i++)
     {
         TrashItem *item = (TrashItem *)g_slist_nth_data(files, i);
-        printf("%d - %s %s\n\tTrashed Path: %s\n\tRestore Path: %s\n\n", i + 1, item->directory ? "D" : "F", item->name, item->path, item->restore_path);
+        printf("%d - %s - %s\n", i + 1, item->directory ? "D" : "F", item->name);
+        printf("\tTrashed Path: %s\n", item->path);
+        printf("\tRestore Path: %s\n", item->trash_info->restore_path);
+        gchar *formatted_deletion_date = g_date_time_format(item->trash_info->deletion_date, "%B %e, %Y %I:%M %p");
+        printf("\tDeletion Time: %s\n\n", formatted_deletion_date);
+        g_free(formatted_deletion_date);
     }
 
     g_slist_free_full(g_steal_pointer(&files), (GDestroyNotify)trash_item_free);
