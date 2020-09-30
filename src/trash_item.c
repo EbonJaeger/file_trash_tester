@@ -31,6 +31,11 @@ TrashInfo *trash_info_new(char *restore_path, GDateTime *deletion_date)
 
 void trash_info_free(TrashInfo *trash_info)
 {
+    if (!trash_info)
+    {
+        return;
+    }
+
     free(trash_info->restore_path);
     g_date_time_unref(trash_info->deletion_date);
     free(trash_info);
