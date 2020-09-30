@@ -34,7 +34,7 @@ gchar *trash_get_path(void);
  * 
  * The result of this must be freed with `g_free()`.
  */
-gchar *trash_get_info_file_path(char *name);
+gchar *trash_get_info_file_path(const char *name);
 
 /**
  * Get the restore path for a given file in the trash bin.
@@ -44,6 +44,6 @@ gchar *trash_get_info_file_path(char *name);
  * 
  * The result of this should be freed with `free()`.
  */
-char *trash_get_restore_path(char *name, GError **err);
+char *trash_get_restore_path(const char *name, GError **err);
 
 #endif

@@ -11,7 +11,7 @@ struct TrashItem;
 typedef struct TrashItem
 {
     const char *name;
-    char *path;
+    const char *path;
     char *restore_path;
     int directory;
 } TrashItem;
@@ -21,7 +21,7 @@ typedef struct TrashItem
  * 
  * The returned pointer should be freed with `trash_item_free()`.
  */
-struct TrashItem *trash_item_new(char *name, char *path, char *restore_path);
+TrashItem *trash_item_new(const char *name, const char *path, char *restore_path);
 
 /**
  * Frees all resources for a TrashItem.

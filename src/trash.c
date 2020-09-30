@@ -18,7 +18,13 @@ GSList *trash_get_items(const char *path, GError **err)
     GFileInfo *current_file;
     while ((current_file = g_file_enumerator_next_file(enumerator, NULL, err)))
     {
-        files = g_slist_append(files, (gpointer)g_file_info_get_name(current_file));
+        const char *file_name = g_file_info_get_name(current_file);
+        char *restore_path = trash_get_restore_path(file_name, err);
+        char *trashed_path = (char *)g_build_path("/", path, file_name, NULL);
+
+        TrashItem *item = trash_item_new(file_name, trashed_path, restore_path);
+
+        files = g_slist_append(files, (gpointer)item);
     }
 
     // Free resources
@@ -34,7 +40,7 @@ gchar *trash_get_path(void)
     return g_build_path("/", g_get_user_data_dir(), "Trash", "files", NULL);
 }
 
-gchar *trash_get_info_file_path(char *name)
+gchar *trash_get_info_file_path(const char *name)
 {
     // Build the trashinfo file name
     char *file_ext = ".trashinfo";
@@ -49,7 +55,7 @@ gchar *trash_get_info_file_path(char *name)
     return path;
 }
 
-char *trash_get_restore_path(char *name, GError **err)
+char *trash_get_restore_path(const char *name, GError **err)
 {
     // Get the path to the trashinfo file
     gchar *info_file_path = trash_get_info_file_path(name);
@@ -82,7 +88,7 @@ char *trash_get_restore_path(char *name, GError **err)
 
     // Get just the path itself
     int end_of_line = (int)(strchr(buffer, '\n') - buffer);
-    char *restore_path = (char *)malloc(strlen(buffer) - end_of_line + 1);
+    char *restore_path = (char *)malloc(end_of_line + 1);
     restore_path = substring(buffer, restore_path, 0, end_of_line);
     restore_path[end_of_line] = '\0';
 

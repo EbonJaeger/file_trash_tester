@@ -4,7 +4,7 @@
 int main(void)
 {
     char *path = (char *)trash_get_path();
-    printf("Trash directory in use: %s\n", path);
+    printf("Trash directory: %s\n", path);
 
     GError *err = 0;
     GSList *files = trash_get_items(path, &err);
@@ -25,33 +25,14 @@ int main(void)
     }
 
     guint length = g_slist_length(files);
-    printf("Files (%d total):\n", length);
+    printf("Files (%d total):\n\n", length);
     for (int i = 0; i < length; i++)
     {
-        printf("%d - %s\n", i + 1, (char *)g_slist_nth_data(files, i));
+        TrashItem *item = (TrashItem *)g_slist_nth_data(files, i);
+        printf("%d - %s %s\n\tTrashed Path: %s\n\tRestore Path: %s\n\n", i + 1, item->directory ? "D" : "F", item->name, item->path, item->restore_path);
     }
 
-    g_slist_free_full(g_steal_pointer(&files), g_free);
-
-    printf("\n\n");
-
-    char *restore_path = trash_get_restore_path("eclipse", &err);
-    if (!restore_path)
-    {
-        if (err)
-        {
-            printf("Error getting restore path: %d: %s\n", err->code, err->message);
-            return err->code;
-        }
-        else
-        {
-            printf("Unknown error while getting trash restore path\n");
-            return 1;
-        }
-    }
-
-    printf("Restore Path: %s\n", restore_path);
-    free(restore_path);
+    g_slist_free_full(g_steal_pointer(&files), (GDestroyNotify)trash_item_free);
 
     return 0;
 }
