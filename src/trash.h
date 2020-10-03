@@ -30,7 +30,7 @@
  * If there was an error reading the trash directory, `NULL` will
  * be returned, and `err` will be set.
  */
-GSList *trash_get_items(const char *path, GError **err);
+GSList *trash_get_items(const char *path, GError *err);
 
 /**
  * Gets the user's current Trash directory.

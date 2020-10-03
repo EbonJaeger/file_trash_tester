@@ -1,12 +1,12 @@
 #include "trash.h"
 #include <stdio.h>
 
-GSList *trash_get_items(const char *path, GError **err)
+GSList *trash_get_items(const char *path, GError *err)
 {
     // Open our trash directory
     GFile *trash_dir = g_file_new_for_path(path);
-    GFileEnumerator *enumerator = g_file_enumerate_children(trash_dir, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, err);
-    if (!enumerator)
+    GFileEnumerator *enumerator = g_file_enumerate_children(trash_dir, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &err);
+    if G_UNLIKELY (!enumerator)
     {
         // There was a problem getting the enumerator; return early
         g_object_unref(trash_dir);
@@ -16,16 +16,14 @@ GSList *trash_get_items(const char *path, GError **err)
     // Iterate over the directory's children and append each file name to a list
     GSList *files = NULL;
     GFileInfo *current_file;
-    while ((current_file = g_file_enumerator_next_file(enumerator, NULL, err)))
+    while ((current_file = g_file_enumerator_next_file(enumerator, NULL, &err)))
     {
         const char *file_name = g_file_info_get_name(current_file);
         char *trashed_path = (char *)g_build_path("/", path, file_name, NULL);
 
-        TrashItem *trash_item = trash_item_new(file_name, trashed_path);
-
         // Parse the trashinfo file for this item
-        char *trash_info_contents = trash_read_trash_info(file_name, err);
-        if (!trash_info_contents)
+        char *trash_info_contents = trash_read_trash_info(file_name, &err);
+        if G_UNLIKELY (!trash_info_contents)
         {
             break;
         }
@@ -33,7 +31,9 @@ GSList *trash_get_items(const char *path, GError **err)
         char *restore_path = trash_get_restore_path(trash_info_contents);
         GDateTime *deletion_date = trash_get_deletion_date(trash_info_contents);
         TrashInfo *trash_info = trash_info_new(restore_path, deletion_date);
-        trash_item->trash_info = trash_info;
+
+        TrashItem *trash_item = trash_item_new_with_info(file_name, trashed_path, trash_info);
+        g_warn_if_fail(trash_item != NULL);
 
         free(trash_info_contents);
         files = g_slist_append(files, (gpointer)trash_item);
@@ -78,6 +78,7 @@ GDateTime *trash_get_deletion_date(char *data)
     deletion_date_str[length] = '\0';
 
     GDateTime *deletion_date = g_date_time_new_from_iso8601((const gchar *)deletion_date_str, g_time_zone_new_local());
+    free(deletion_date_str);
 
     return deletion_date;
 }
@@ -123,6 +124,7 @@ char *trash_read_trash_info(const char *file_name, GError **err)
 
     // Free some resources
     g_input_stream_close((GInputStream *)input_stream, NULL, NULL);
+    g_object_unref(input_stream);
     g_object_unref(info_file);
     g_free(info_file_path);
 

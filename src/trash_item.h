@@ -34,6 +34,14 @@ typedef struct TrashItem
 TrashItem *trash_item_new(const char *name, const char *path);
 
 /**
+ * Creates and allocates a new TrashItem with a given TrashInfo
+ * struct.
+ * 
+ * The returned pointer should be freed with `trash_item_free()`.
+ */
+TrashItem *trash_item_new_with_info(const char *name, const char *path, TrashInfo *trash_info);
+
+/**
  * Creates and allocates a new TrashInfo.
  * 
  * The result of this should be freed with `trash_info_free()`.
