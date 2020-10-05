@@ -47,7 +47,7 @@ executable(
     meson.project_name(),
     [
         'src/utils.c',
-        'src/trash.c',
+        'src/trash_store.c',
         'src/trash_item.c',
         'src/main.c'
     ],
