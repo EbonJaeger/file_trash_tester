@@ -50,6 +50,8 @@ TrashStore *load_trash_store(GError *err)
     if (!trash_store)
     {
         printf("Unable to create a trash store struct\n");
+        g_free((char *)trash_path);
+        g_free((char *)info_path);
         return NULL;
     }
 
@@ -98,17 +100,7 @@ int do_restore_file(TrashStore *trash_store, const char *file_name, GError *err)
     }
 
     // Try to find the correct file
-    TrashItem *trash_item;
-    guint length = g_slist_length(trash_store->trashed_items);
-    for (int i = 0; i < length; i++)
-    {
-        trash_item = g_slist_nth_data(trash_store->trashed_items, i);
-        if (strcmp(trash_item->name, file_name) == 0)
-        {
-            break;
-        }
-        trash_item = NULL;
-    }
+    TrashItem *trash_item = trash_get_item_by_name(trash_store, file_name);
 
     if (!trash_item)
     {

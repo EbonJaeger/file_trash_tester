@@ -24,6 +24,9 @@
  */
 #define TRASH_INFO_DELETION_DATE_PREFIX_OFFSET 14
 
+/**
+ * Struct representing a trash storage location.
+ */
 struct TrashStore;
 typedef struct TrashStore
 {
@@ -32,8 +35,19 @@ typedef struct TrashStore
     GSList *trashed_items;
 } TrashStore;
 
+/**
+ * Create a new TrashStore with the given file paths.
+ * 
+ * The TrashStore will be initialized with a NULL GSList
+ * to hold trashed items, as per the GLib docs.
+ * 
+ * The return value of this should be freed with `trash_store_free()`.
+ */
 TrashStore *trash_store_new(const char *trashed_file_path, const char *trashed_info_path);
 
+/**
+ * Free all resources used by a TrashStore struct.
+ */
 void trash_store_free(TrashStore *trash_store);
 
 /**
@@ -44,6 +58,17 @@ void trash_store_free(TrashStore *trash_store);
  */
 void trash_load_items(TrashStore *trash_store, GError *err);
 
+/**
+ * Get a trashed item in the given trash bin. If there is no item
+ * found with the given file name, NULL will be returned.
+ */
+TrashItem *trash_get_item_by_name(TrashStore *trash_store, const char *file_name);
+
+/**
+ * Restore an item from the trash bin to its original location.
+ * 
+ * If an error occurs, FALSE will be returned, and err will be set.
+ */
 gboolean trash_restore_item(TrashStore *trash_store,
                             TrashItem *trash_item,
                             GFileProgressCallback progress_callback,

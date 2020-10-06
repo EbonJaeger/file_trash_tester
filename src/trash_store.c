@@ -140,6 +140,7 @@ void trash_store_free(TrashStore *trash_store)
 void trash_load_items(TrashStore *trash_store, GError *err)
 {
     g_return_if_fail(trash_store != NULL);
+    g_return_if_fail(trash_store->trashed_items == NULL);
 
     // Open our trash directory
     GFile *trash_dir = g_file_new_for_path(trash_store->trashed_file_path);
@@ -152,7 +153,6 @@ void trash_load_items(TrashStore *trash_store, GError *err)
     }
 
     // Iterate over the directory's children and append each file name to a list
-    GSList *files = NULL;
     GFileInfo *current_file;
     while ((current_file = g_file_enumerator_next_file(enumerator, NULL, &err)))
     {
@@ -174,15 +174,33 @@ void trash_load_items(TrashStore *trash_store, GError *err)
         g_warn_if_fail(trash_item != NULL);
 
         free(trash_info_contents);
-        files = g_slist_append(files, (gpointer)trash_item);
+        trash_store->trashed_items = g_slist_append(trash_store->trashed_items, (gpointer)trash_item);
     }
 
     // Free resources
     g_file_enumerator_close(enumerator, NULL, NULL);
     g_object_unref(enumerator);
     g_object_unref(trash_dir);
+}
 
-    trash_store->trashed_items = files;
+TrashItem *trash_get_item_by_name(TrashStore *trash_store, const char *file_name)
+{
+    g_return_val_if_fail(trash_store != NULL, NULL);
+    g_return_val_if_fail(file_name != NULL, NULL);
+
+    TrashItem *trash_item;
+    guint length = g_slist_length(trash_store->trashed_items);
+    for (int i = 0; i < length; i++)
+    {
+        trash_item = g_slist_nth_data(trash_store->trashed_items, i);
+        if (strcmp(trash_item->name, file_name) == 0)
+        {
+            break;
+        }
+        trash_item = NULL;
+    }
+
+    return trash_item;
 }
 
 gboolean trash_restore_item(TrashStore *trash_store,
