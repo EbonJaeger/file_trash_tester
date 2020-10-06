@@ -10,7 +10,7 @@ TrashItem *trash_item_new(const char *name, const char *path)
 
     trash_item->name = name;
     trash_item->path = path;
-    trash_item->directory = g_file_test(trash_item->path, G_FILE_TEST_IS_DIR);
+    trash_item->is_directory = g_file_test(trash_item->path, G_FILE_TEST_IS_DIR);
 
     return trash_item;
 }
@@ -27,7 +27,7 @@ TrashItem *trash_item_new_with_info(const char *name, const char *path, TrashInf
 
     trash_item->name = name;
     trash_item->path = path;
-    trash_item->directory = g_file_test(trash_item->path, G_FILE_TEST_IS_DIR);
+    trash_item->is_directory = g_file_test(trash_item->path, G_FILE_TEST_IS_DIR);
     trash_item->trash_info = trash_info;
 
     return trash_item;

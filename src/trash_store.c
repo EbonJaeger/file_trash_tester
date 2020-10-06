@@ -7,7 +7,7 @@
  * 
  * The result of this must be freed with `g_free()`.
  */
-static gchar *trash_get_info_file_path(const char *trash_info_path, const char *name)
+static const char *trash_get_info_file_path(const char *trash_info_path, const char *name)
 {
     g_return_val_if_fail(trash_info_path != NULL, NULL);
     g_return_val_if_fail(name != NULL, NULL);
@@ -19,7 +19,7 @@ static gchar *trash_get_info_file_path(const char *trash_info_path, const char *
     strcat(info_file_name, file_ext);
 
     // Build the path to the trashinfo file
-    char *path = g_build_path("/", trash_info_path, info_file_name, NULL);
+    const char *path = (const char *)g_build_path("/", trash_info_path, info_file_name, NULL);
     g_free(info_file_name);
 
     return path;
@@ -33,7 +33,7 @@ static gchar *trash_get_info_file_path(const char *trash_info_path, const char *
 static char *trash_read_trash_info(const char *trash_info_path, const char *file_name, GError **err)
 {
     // Get the path to the trashinfo file
-    gchar *info_file_path = trash_get_info_file_path(trash_info_path, file_name);
+    const char *info_file_path = trash_get_info_file_path(trash_info_path, file_name);
 
     // Open the file
     GFile *info_file = g_file_new_for_path(info_file_path);
@@ -41,7 +41,7 @@ static char *trash_read_trash_info(const char *trash_info_path, const char *file
     if (!input_stream)
     {
         g_object_unref(info_file);
-        g_free(info_file_path);
+        g_free((char *)info_file_path);
         return NULL;
     }
 
@@ -60,7 +60,7 @@ static char *trash_read_trash_info(const char *trash_info_path, const char *file
     g_input_stream_close((GInputStream *)input_stream, NULL, NULL);
     g_object_unref(input_stream);
     g_object_unref(info_file);
-    g_free(info_file_path);
+    g_free((char *)info_file_path);
 
     return buffer;
 }
@@ -81,7 +81,9 @@ static GDateTime *trash_get_deletion_date(char *data)
     deletion_date_str = substring(data, deletion_date_str, substr_start, length);
     deletion_date_str[length] = '\0';
 
-    GDateTime *deletion_date = g_date_time_new_from_iso8601((const gchar *)deletion_date_str, g_time_zone_new_local());
+    GTimeZone *tz = g_time_zone_new_local();
+    GDateTime *deletion_date = g_date_time_new_from_iso8601((const gchar *)deletion_date_str, tz);
+    g_time_zone_unref(tz);
     free(deletion_date_str);
 
     return deletion_date;
@@ -144,7 +146,11 @@ void trash_load_items(TrashStore *trash_store, GError *err)
 
     // Open our trash directory
     GFile *trash_dir = g_file_new_for_path(trash_store->trashed_file_path);
-    GFileEnumerator *enumerator = g_file_enumerate_children(trash_dir, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &err);
+    GFileEnumerator *enumerator = g_file_enumerate_children(trash_dir,
+                                                            G_FILE_ATTRIBUTE_STANDARD_NAME,
+                                                            G_FILE_QUERY_INFO_NONE,
+                                                            NULL,
+                                                            &err);
     if G_UNLIKELY (!enumerator)
     {
         // There was a problem getting the enumerator; return early
@@ -170,7 +176,8 @@ void trash_load_items(TrashStore *trash_store, GError *err)
         GDateTime *deletion_date = trash_get_deletion_date(trash_info_contents);
         TrashInfo *trash_info = trash_info_new(restore_path, deletion_date);
 
-        TrashItem *trash_item = trash_item_new_with_info(file_name, trashed_path, trash_info);
+        TrashItem *trash_item = trash_item_new_with_info(strdup(file_name), trashed_path, trash_info);
+        g_object_unref(current_file);
         g_warn_if_fail(trash_item != NULL);
 
         free(trash_info_contents);
@@ -203,6 +210,31 @@ TrashItem *trash_get_item_by_name(TrashStore *trash_store, const char *file_name
     return trash_item;
 }
 
+gboolean trash_delete_item(TrashStore *trash_store,
+                           TrashItem *trash_item,
+                           GError *err)
+{
+    g_return_val_if_fail(trash_store != NULL, FALSE);
+    g_return_val_if_fail(trash_item != NULL, FALSE);
+
+    // Delete the trashed file (if it's a directory, it will delete recursively)
+    gboolean success = delete_trashed_file(trash_item->path, trash_item->is_directory, err);
+    if (!success)
+    {
+        return success;
+    }
+
+    // Delete the .trashinfo file
+    const char *info_file_path = trash_get_info_file_path(trash_store->trashed_info_path, trash_item->name);
+    GFile *info_file = g_file_new_for_path(info_file_path);
+    success = g_file_delete(info_file, NULL, &err);
+
+    g_object_unref(info_file);
+    g_free((char *)info_file_path);
+
+    return success;
+}
+
 gboolean trash_restore_item(TrashStore *trash_store,
                             TrashItem *trash_item,
                             GFileProgressCallback progress_callback,
@@ -228,7 +260,7 @@ gboolean trash_restore_item(TrashStore *trash_store,
     }
 
     // Delete the .trashinfo file
-    const char *info_file_path = (const char *)trash_get_info_file_path(trash_store->trashed_info_path, trash_item->name);
+    const char *info_file_path = trash_get_info_file_path(trash_store->trashed_info_path, trash_item->name);
     GFile *info_file = g_file_new_for_path(info_file_path);
     success = g_file_delete(info_file, NULL, err);
 

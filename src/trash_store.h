@@ -64,6 +64,10 @@ void trash_load_items(TrashStore *trash_store, GError *err);
  */
 TrashItem *trash_get_item_by_name(TrashStore *trash_store, const char *file_name);
 
+gboolean trash_delete_item(TrashStore *trash_store,
+                           TrashItem *trash_item,
+                           GError *err);
+
 /**
  * Restore an item from the trash bin to its original location.
  * 

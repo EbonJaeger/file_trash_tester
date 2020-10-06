@@ -23,7 +23,7 @@ typedef struct TrashItem
     const char *name;
     const char *path;
     TrashInfo *trash_info;
-    int directory;
+    int is_directory;
 } TrashItem;
 
 /**

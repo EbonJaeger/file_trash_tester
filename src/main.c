@@ -82,13 +82,38 @@ void do_list_trash(TrashStore *trash_store)
     for (int i = 0; i < length; i++)
     {
         TrashItem *item = (TrashItem *)g_slist_nth_data(trash_store->trashed_items, i);
-        printf("%d - %s - %s\n", i + 1, item->directory ? "D" : "F", item->name);
+        printf("%d - %s - %s\n", i + 1, item->is_directory ? "D" : "F", item->name);
         printf("\tTrashed Path: %s\n", item->path);
         printf("\tRestore Path: %s\n", item->trash_info->restore_path);
         gchar *formatted_deletion_date = g_date_time_format(item->trash_info->deletion_date, "%B %e, %Y %I:%M %p");
         printf("\tDeletion Time: %s\n\n", formatted_deletion_date);
         g_free(formatted_deletion_date);
     }
+}
+
+int do_delete_file(TrashStore *trash_store, const char *file_name, GError *err)
+{
+    if (!trash_store->trashed_items)
+    {
+        printf("There are no items in the trash bin!\n");
+        return 0;
+    }
+
+    // Try to find the correct file
+    TrashItem *trash_item = trash_get_item_by_name(trash_store, file_name);
+
+    if (!trash_item)
+    {
+        printf("That file is not in the trash bin!\n");
+        return 0;
+    }
+
+    if (!trash_delete_item(trash_store, trash_item, err))
+    {
+        return err->code;
+    }
+
+    return 0;
 }
 
 int do_restore_file(TrashStore *trash_store, const char *file_name, GError *err)
@@ -153,7 +178,12 @@ int main(int argc, char **argv)
     switch (cmd)
     {
     case DELETE:
-        printf("Not implemented yet!\n");
+        if (argc != 3)
+        {
+            printf("No file name given!\n");
+            break;
+        }
+        result = do_delete_file(trash_store, argv[2], err);
         break;
     case LIST:
         printf("\n");
