@@ -2,6 +2,9 @@
 
 TrashItem *trash_item_new(const char *name, const char *path)
 {
+    g_return_val_if_fail(name != NULL, NULL);
+    g_return_val_if_fail(path != NULL, NULL);
+
     struct TrashItem *trash_item = (struct TrashItem *)malloc(sizeof(struct TrashItem));
     if (!trash_item)
     {
@@ -19,15 +22,9 @@ TrashItem *trash_item_new_with_info(const char *name, const char *path, TrashInf
 {
     g_return_val_if_fail(trash_info != NULL, NULL);
 
-    struct TrashItem *trash_item = (struct TrashItem *)malloc(sizeof(struct TrashItem));
-    if (!trash_item)
-    {
-        return NULL;
-    }
+    struct TrashItem *trash_item = trash_item_new(name, path);
+    g_return_val_if_fail(trash_item != NULL, NULL);
 
-    trash_item->name = name;
-    trash_item->path = path;
-    trash_item->is_directory = g_file_test(trash_item->path, G_FILE_TEST_IS_DIR);
     trash_item->trash_info = trash_info;
 
     return trash_item;
@@ -35,6 +32,9 @@ TrashItem *trash_item_new_with_info(const char *name, const char *path, TrashInf
 
 TrashInfo *trash_info_new(char *restore_path, GDateTime *deletion_date)
 {
+    g_return_val_if_fail(restore_path != NULL, NULL);
+    g_return_val_if_fail(deletion_date != NULL, NULL);
+
     TrashInfo *trash_info = (TrashInfo *)malloc(sizeof(TrashInfo));
     if (!trash_info)
     {
@@ -62,6 +62,9 @@ void trash_item_free(TrashItem *trash_item)
 
     free((char *)trash_item->name);
     free((char *)trash_item->path);
-    trash_info_free(trash_item->trash_info);
+    if (trash_item->trash_info)
+    {
+        trash_info_free(trash_item->trash_info);
+    }
     free(trash_item);
 }
