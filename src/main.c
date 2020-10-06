@@ -155,18 +155,20 @@ int main(int argc, char **argv)
     }
 
     // Create our default trash store
+    int result = 0;
     GError *err = 0;
     TrashStore *trash_store = load_trash_store(err);
     if (!trash_store)
     {
         if (err)
         {
-            return err->code;
+            result = err->code;
         }
         else
         {
-            return 1;
+            result = 1;
         }
+        goto out;
     }
 
     // Parse the given command
@@ -174,7 +176,6 @@ int main(int argc, char **argv)
     enum Command cmd = parse_input_char(cmd_char);
 
     // Perform the command
-    int result = 0;
     switch (cmd)
     {
     case DELETE:
@@ -202,13 +203,13 @@ int main(int argc, char **argv)
         break;
     }
 
-    // Print any messages on error
+    // Print any messages on error and clean up
+out:
     if (result != 0)
     {
         if (err)
         {
             printf("Error while performing command: %d: %s\n", err->code, err->message);
-            g_error_free(err);
         }
         else
         {
@@ -216,7 +217,14 @@ int main(int argc, char **argv)
         }
     }
 
-    trash_store_free(trash_store);
+    if (trash_store)
+    {
+        trash_store_free(trash_store);
+    }
+    if (err)
+    {
+        g_error_free(err);
+    }
 
     return result;
 }
